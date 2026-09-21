@@ -16,7 +16,8 @@ struct LabGuideView: View {
           GuideRow(
             title: "Remove geometry",
             detail:
-              "Use Undo to remove the latest construction change, or Clear to reset the scene."
+              "Use Delete to remove one entity and its dependents, Undo or Redo for history, "
+              + "or Clear to reset the scene."
           )
           GuideRow(
             title: "Test dependencies",
@@ -33,14 +34,14 @@ struct LabGuideView: View {
           GuideRow(
             title: "Graph representation",
             detail:
-              "Each finite sample becomes a package point; adjacent samples become "
-              + "package segments."
+              "The package produces separate finite branches and never connects across an "
+              + "undefined discontinuity."
           )
           GuideRow(
             title: "Integral",
             detail:
-              "The lab uses the trapezoid rule and shades the sampled area. "
-              + "It is numerical, not symbolic."
+              "Choose package-defined left, right, or midpoint Riemann rectangles. "
+              + "Heights and sums are signed and numerical."
           )
           GuideRow(
             title: "Limit",
@@ -50,7 +51,7 @@ struct LabGuideView: View {
 
         Section("Formula syntax") {
           Text("Operators: +  −  *  /  ^")
-          Text("Functions: sin cos tan asin acos atan abs sqrt log ln exp floor ceil")
+          Text("Functions: sin cos tan abs sqrt log ln exp")
           Text("Examples: sin(x)/x, 1/x, exp(-x^2), x^3-3*x")
           Text("Write 2*x, not 2x. Function calls require parentheses.")
         }
@@ -69,6 +70,12 @@ struct LabGuideView: View {
               "Creates deeply nested derived-point dependencies and measures "
               + "recursive resolution.")
           GuideRow(
+            title: "Incremental",
+            detail:
+              "Moves one root twelve times at 100, 1,000, or 10,000 dependents and records "
+              + "p95 update time plus the affected count."
+          )
+          GuideRow(
             title: "Invalid",
             detail:
               "Submits NaN and infinity repeatedly and confirms rollback leaves "
@@ -78,9 +85,9 @@ struct LabGuideView: View {
 
         Section("Important boundary") {
           Text(
-            "DynamicGeometry currently models finite geometric entities and relationships. "
-              + "The sandbox samples calculus expressions into those entities. It does not "
-              + "claim the package is a symbolic algebra or calculus engine.")
+            "DynamicGeometry provides numerical explicit curves and semantic Riemann sums. "
+              + "It does not claim symbolic algebra, exact integration, formal proofs, or a "
+              + "general constraint solver.")
         }
       }
       .navigationTitle("Using the Lab")

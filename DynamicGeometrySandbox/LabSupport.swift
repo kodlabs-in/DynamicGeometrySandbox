@@ -41,11 +41,13 @@ struct GeometrySceneCanvas: View {
   let viewport: PlotViewport
   var showsPoints = true
   var fillPoints: [Point2D] = []
+  var riemannRectangles: [RiemannRectangle2D] = []
 
   var body: some View {
     Canvas { context, size in
       drawGrid(context: &context, size: size)
       drawIntegralFill(context: &context, size: size)
+      drawRiemannRectangles(context: &context, size: size)
       for id in scene.orderedIDs {
         drawEntity(id, context: &context, size: size)
       }
@@ -107,6 +109,26 @@ struct GeometrySceneCanvas: View {
     path.addLine(to: viewport.viewPoint(Point2D(x: last.x, y: 0), size: size))
     path.closeSubpath()
     context.fill(path, with: .color(.blue.opacity(0.16)))
+  }
+
+  private func drawRiemannRectangles(context: inout GraphicsContext, size: CGSize) {
+    for rectangle in riemannRectangles {
+      let first = viewport.viewPoint(
+        Point2D(x: rectangle.interval.lowerBound, y: 0),
+        size: size)
+      let opposite = viewport.viewPoint(
+        Point2D(x: rectangle.interval.upperBound, y: rectangle.height),
+        size: size)
+      let bounds = CGRect(
+        x: min(first.x, opposite.x),
+        y: min(first.y, opposite.y),
+        width: abs(opposite.x - first.x),
+        height: abs(opposite.y - first.y))
+      let path = Path(bounds)
+      let color: Color = rectangle.height >= 0 ? .blue : .orange
+      context.fill(path, with: .color(color.opacity(0.18)))
+      context.stroke(path, with: .color(color.opacity(0.65)), lineWidth: 1)
+    }
   }
 
   private func drawEntity(

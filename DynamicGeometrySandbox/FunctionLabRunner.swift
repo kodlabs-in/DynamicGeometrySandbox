@@ -21,6 +21,33 @@ struct FunctionRunRequest: Sendable {
   let integralLower: Double
   let integralUpper: Double
   let limitTarget: Double
+  let riemannRule: RiemannSamplingRule
+
+  init(
+    formula: String,
+    mode: FunctionRunMode,
+    xMinimum: Double,
+    xMaximum: Double,
+    yMinimum: Double,
+    yMaximum: Double,
+    sampleCount: Int,
+    integralLower: Double,
+    integralUpper: Double,
+    limitTarget: Double,
+    riemannRule: RiemannSamplingRule = .midpoint
+  ) {
+    self.formula = formula
+    self.mode = mode
+    self.xMinimum = xMinimum
+    self.xMaximum = xMaximum
+    self.yMinimum = yMinimum
+    self.yMaximum = yMaximum
+    self.sampleCount = sampleCount
+    self.integralLower = integralLower
+    self.integralUpper = integralUpper
+    self.limitTarget = limitTarget
+    self.riemannRule = riemannRule
+  }
 }
 
 struct FunctionLimitSample: Identifiable, Sendable {
@@ -33,6 +60,10 @@ struct FunctionLimitSample: Identifiable, Sendable {
 
 struct FunctionRunResult: Sendable {
   let scene: GeometryScene
+  let curveDefinition: ExplicitCurveDefinition
+  let curveResult: CurveSampleResult
+  let riemannDefinition: RiemannSumDefinition?
+  let riemannResult: RiemannSumResult?
   let buildMilliseconds: Double
   let encodedByteCount: Int
   let integral: Double?
@@ -50,18 +81,28 @@ struct FunctionRunResult: Sendable {
     if value == -.infinity { return "−∞" }
     return String(format: "%.6g", value)
   }
+
+  static func format(_ outcome: ScalarEvaluationOutcome) -> String {
+    if let value = outcome.value {
+      return format(value)
+    }
+    switch outcome {
+    case .undefined: return "undefined"
+    case .unsupported: return "unsupported"
+    case .nonconvergent: return "nonconvergent"
+    case .pending: return "pending"
+    case .exact, .approximate: return "unavailable"
+    }
+  }
 }
 
 enum FunctionLabError: Error, LocalizedError {
   case invalidRange(String)
-  case nonFiniteIntegral(Double)
 
   var errorDescription: String? {
     switch self {
     case .invalidRange(let name):
       "\(name) minimum must be smaller than its maximum."
-    case .nonFiniteIntegral(let x):
-      "The integral crosses a non-finite value near x = \(FunctionRunResult.format(x))."
     }
   }
 }
@@ -79,93 +120,74 @@ enum FunctionLabRunner {
     }
 
     let xRange = request.xMinimum...request.xMaximum
-    let yRange = request.yMinimum...request.yMaximum
     var parser = try MathExpressionParser(request.formula)
-    let expression = try parser.parse()
+    let parsedExpression = try parser.parse()
+    let variableID = ScalarParameterID()
+    let function = try ScalarFunction1D(
+      independentVariableID: variableID,
+      expression: parsedExpression.scalarExpression(variableID: variableID))
+    let curveDefinition = try ExplicitCurveDefinition(function: function, domain: xRange)
     let clock = ContinuousClock()
     let start = clock.now
-    let scene = try buildScene(
-      expression: expression,
-      xRange: xRange,
-      yRange: yRange,
-      sampleCount: request.sampleCount)
+    let curveResult = try curveDefinition.sample(sampleCount: request.sampleCount)
+    let scene = try buildScene(curveResult)
     let elapsed = start.duration(to: clock.now).milliseconds
     let encodedByteCount = try JSONEncoder().encode(scene).count
-    let integralResult = try integralResult(request: request, expression: expression)
+    let riemannDefinition = try makeRiemannDefinition(request: request, function: function)
+    let riemannResult = riemannDefinition?.evaluate()
     let limitResult = limitResult(
       mode: request.mode,
-      expression: expression,
+      function: function,
       target: request.limitTarget,
       domainWidth: xRange.upperBound - xRange.lowerBound)
 
     return FunctionRunResult(
       scene: scene,
+      curveDefinition: curveDefinition,
+      curveResult: curveResult,
+      riemannDefinition: riemannDefinition,
+      riemannResult: riemannResult,
       buildMilliseconds: elapsed,
       encodedByteCount: encodedByteCount,
-      integral: integralResult?.value,
-      integralFill: integralResult?.points ?? [],
+      integral: riemannResult?.signedSum.value,
+      integralFill: riemannResult?.rectangles.map {
+        Point2D(x: $0.sampleInput, y: $0.height)
+      } ?? [],
       limitSamples: limitResult.samples,
       limitEstimate: limitResult.estimate)
   }
 
-  private static func buildScene(
-    expression: MathExpression,
-    xRange: ClosedRange<Double>,
-    yRange: ClosedRange<Double>,
-    sampleCount: Int
-  ) throws -> GeometryScene {
+  private static func buildScene(_ result: CurveSampleResult) throws -> GeometryScene {
     var scene = GeometryScene(coordinateSystem: .cartesian)
-    var previous: (id: GeometryID, point: Point2D)?
-    let discontinuityThreshold = (yRange.upperBound - yRange.lowerBound) * 4
-    let step = (xRange.upperBound - xRange.lowerBound) / Double(sampleCount - 1)
 
-    for index in 0..<sampleCount {
-      let x = xRange.lowerBound + Double(index) * step
-      let y = expression.evaluate(x: x)
-      guard y.isFinite else {
-        previous = nil
-        continue
+    for branch in result.branches {
+      var previousID: GeometryID?
+      for point in branch.points {
+        let id = try scene.addPoint(.free(point))
+        if let previousID {
+          _ = try scene.addSegment(start: previousID, end: id)
+        }
+        previousID = id
       }
-      let point = Point2D(x: x, y: y)
-      let id = try scene.addPoint(.free(point))
-      if let previous, abs(previous.point.y - point.y) <= discontinuityThreshold {
-        _ = try scene.addSegment(start: previous.id, end: id)
-      }
-      previous = (id, point)
     }
     return scene
   }
 
-  private static func integralResult(
+  private static func makeRiemannDefinition(
     request: FunctionRunRequest,
-    expression: MathExpression
-  ) throws -> (value: Double, points: [Point2D])? {
+    function: ScalarFunction1D
+  ) throws -> RiemannSumDefinition? {
     guard request.mode == .integral else { return nil }
-    let step =
-      (request.integralUpper - request.integralLower)
-      / Double(request.sampleCount - 1)
-    var points: [Point2D] = []
-    var total = 0.0
-    var previousValue: Double?
-
-    for index in 0..<request.sampleCount {
-      let x = request.integralLower + Double(index) * step
-      let value = expression.evaluate(x: x)
-      guard value.isFinite else {
-        throw FunctionLabError.nonFiniteIntegral(x)
-      }
-      points.append(Point2D(x: x, y: value))
-      if let previousValue {
-        total += (previousValue + value) * 0.5 * step
-      }
-      previousValue = value
-    }
-    return (total, points)
+    return try RiemannSumDefinition(
+      function: function,
+      interval: request.integralLower...request.integralUpper,
+      rectangleCount: request.sampleCount,
+      samplingRule: request.riemannRule)
   }
 
   private static func limitResult(
     mode: FunctionRunMode,
-    expression: MathExpression,
+    function: ScalarFunction1D,
     target: Double,
     domainWidth: Double
   ) -> (samples: [FunctionLimitSample], estimate: String?) {
@@ -175,8 +197,8 @@ enum FunctionLabRunner {
       let distance = initialDistance / Foundation.pow(2, Double(step))
       return FunctionLimitSample(
         distance: distance,
-        leftValue: expression.evaluate(x: target - distance),
-        rightValue: expression.evaluate(x: target + distance))
+        leftValue: function.evaluate(at: target - distance).value ?? .nan,
+        rightValue: function.evaluate(at: target + distance).value ?? .nan)
     }
     guard let last = samples.last else { return (samples, "unknown") }
     return (samples, estimateLimit(left: last.leftValue, right: last.rightValue))

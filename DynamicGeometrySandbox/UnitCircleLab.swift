@@ -1,16 +1,24 @@
+import Combine
 import DynamicGeometry
+import Foundation
 import SwiftUI
 
 struct UnitCircleLabView: View {
-  @State private var construction: UnitCircleConstruction?
+  @State private var session: UnitCircleLabSession?
+  @State private var savedDocument: Data?
+  @State private var isPlaying = false
+  @State private var animationCoalescingID: String?
   @State private var errorMessage: String?
+
+  private let animationTimer = Timer.publish(every: 1.0 / 30, on: .main, in: .common)
+    .autoconnect()
 
   init() {
     do {
-      _construction = State(initialValue: try UnitCircleConstruction())
+      _session = State(initialValue: try UnitCircleLabSession())
       _errorMessage = State(initialValue: nil)
     } catch {
-      _construction = State(initialValue: nil)
+      _session = State(initialValue: nil)
       _errorMessage = State(initialValue: error.localizedDescription)
     }
   }
@@ -18,15 +26,16 @@ struct UnitCircleLabView: View {
   var body: some View {
     NavigationStack {
       VStack(alignment: .leading, spacing: 18) {
-        Text("Drag the orange point or choose an exact angle.")
+        Text("Drag the orange point, choose an angle, or animate the shared θ parameter.")
           .foregroundStyle(.secondary)
         angleButtons
+        documentControls
 
-        if let construction, let snapshot = construction.snapshot {
+        if let session, let snapshot = session.snapshot {
           valueSummary(snapshot)
           UnitCircleCanvas(
-            scene: construction.scene,
-            movingPointID: construction.movingPointID,
+            scene: session.document.scene,
+            movingPointID: session.document.construction.movingPointID,
             onDrag: movePoint)
         } else {
           ContentUnavailableView(
@@ -37,6 +46,12 @@ struct UnitCircleLabView: View {
       }
       .padding()
       .navigationTitle("Unit Circle")
+    }
+    .onReceive(animationTimer) { _ in
+      guard isPlaying, let animationCoalescingID else { return }
+      updateSession { session in
+        try session.advanceAngle(by: .pi / 90, coalescingID: animationCoalescingID)
+      }
     }
     .alert(
       "Geometry error",
@@ -52,11 +67,51 @@ struct UnitCircleLabView: View {
       HStack {
         ForEach([0, 30, 45, 60, 90, 135, 180, 270, 360], id: \.self) { degrees in
           Button("\(degrees)°") {
-            setAngle(degrees)
+            stopAnimation()
+            updateSession { session in
+              try session.setAngle(Double(degrees) * .pi / 180)
+            }
           }
           .buttonStyle(.bordered)
         }
       }
+    }
+  }
+
+  private var documentControls: some View {
+    HStack {
+      Button("Undo", systemImage: "arrow.uturn.backward") {
+        stopAnimation()
+        mutateSession { $0.undo() }
+      }
+      .disabled(session?.canUndo != true)
+
+      Button("Redo", systemImage: "arrow.uturn.forward") {
+        stopAnimation()
+        mutateSession { $0.redo() }
+      }
+      .disabled(session?.canRedo != true)
+
+      Button("Save", systemImage: "square.and.arrow.down") {
+        guard let session else { return }
+        do {
+          savedDocument = try session.encodedDocument()
+        } catch {
+          errorMessage = error.localizedDescription
+        }
+      }
+
+      Button("Reopen", systemImage: "doc.badge.arrow.up") {
+        reopenSavedDocument()
+      }
+      .disabled(savedDocument == nil)
+
+      Button(
+        isPlaying ? "Pause" : "Play",
+        systemImage: isPlaying ? "pause.fill" : "play.fill",
+        action: toggleAnimation
+      )
+      .buttonStyle(.borderedProminent)
     }
   }
 
@@ -68,33 +123,60 @@ struct UnitCircleLabView: View {
     }
   }
 
-  private func setAngle(_ degrees: Int) {
-    guard var construction else { return }
+  private func movePoint(to point: Point2D, coalescingID: String) {
+    stopAnimation()
+    updateSession { session in
+      try session.movePoint(to: point, coalescingID: coalescingID)
+    }
+  }
+
+  private func toggleAnimation() {
+    if isPlaying {
+      stopAnimation()
+    } else {
+      animationCoalescingID = "animation:\(UUID().uuidString)"
+      isPlaying = true
+    }
+  }
+
+  private func stopAnimation() {
+    isPlaying = false
+    animationCoalescingID = nil
+  }
+
+  private func reopenSavedDocument() {
+    guard let savedDocument else { return }
+    stopAnimation()
     do {
-      try construction.setAngle(Double(degrees) * .pi / 180)
-      self.construction = construction
+      session = try UnitCircleLabSession(encodedDocument: savedDocument)
     } catch {
       errorMessage = error.localizedDescription
     }
   }
 
-  private func movePoint(to point: Point2D) {
-    guard var construction else { return }
+  private func updateSession(_ update: (inout UnitCircleLabSession) throws -> Void) {
+    guard var session else { return }
     do {
-      try construction.movePoint(to: point)
-      self.construction = construction
-    } catch GeometryError.undefinedDirection {
-      return
+      try update(&session)
+      self.session = session
     } catch {
       errorMessage = error.localizedDescription
     }
+  }
+
+  private func mutateSession(_ mutation: (inout UnitCircleLabSession) -> Bool) {
+    guard var session else { return }
+    _ = mutation(&session)
+    self.session = session
   }
 }
 
 private struct UnitCircleCanvas: View {
   let scene: GeometryScene
   let movingPointID: GeometryID
-  let onDrag: (Point2D) -> Void
+  let onDrag: (Point2D, String) -> Void
+
+  @State private var dragCoalescingID: String?
 
   private let viewport = PlotViewport(xRange: -1.3...1.3, yRange: -1.3...1.3)
 
@@ -112,11 +194,14 @@ private struct UnitCircleCanvas: View {
             .gesture(
               DragGesture(coordinateSpace: .named("unit-circle"))
                 .onChanged { value in
-                  onDrag(viewport.geometryPoint(value.location, size: proxy.size))
+                  let identifier = dragCoalescingID ?? "drag:\(UUID().uuidString)"
+                  dragCoalescingID = identifier
+                  onDrag(viewport.geometryPoint(value.location, size: proxy.size), identifier)
                 }
+                .onEnded { _ in dragCoalescingID = nil }
             )
             .accessibilityLabel("Point on circle")
-            .accessibilityHint("Drag to change the angle")
+            .accessibilityHint("Drag to change the shared angle")
         }
       }
       .coordinateSpace(name: "unit-circle")
@@ -127,77 +212,129 @@ private struct UnitCircleCanvas: View {
   }
 }
 
-private struct UnitCircleConstruction {
-  private(set) var scene: GeometryScene
-  let circleID: GeometryID
-  let movingPointID: GeometryID
-  let horizontalProjectionID: GeometryID
-  let verticalProjectionID: GeometryID
+enum UnitCircleDocumentError: Error, LocalizedError {
+  case inconsistentDocument
 
-  init() throws {
-    var scene = GeometryScene(coordinateSystem: .cartesian)
-    let centerID = try scene.addPoint(.free(Point2D(x: 0, y: 0)))
-    let circleID = try scene.addCircle(center: centerID, radius: 1)
-    let movingPointID = try scene.addPoint(
-      .onCircle(circle: circleID, angleRadians: .pi / 4))
-    let horizontalProjectionID = try scene.addPoint(
-      .horizontalProjection(of: movingPointID, ontoY: 0))
-    let verticalProjectionID = try scene.addPoint(
-      .verticalProjection(of: movingPointID, ontoX: 0))
-    _ = try scene.addSegment(start: centerID, end: movingPointID)
-    _ = try scene.addSegment(start: movingPointID, end: horizontalProjectionID)
-    _ = try scene.addSegment(start: movingPointID, end: verticalProjectionID)
-
-    self.scene = scene
-    self.circleID = circleID
-    self.movingPointID = movingPointID
-    self.horizontalProjectionID = horizontalProjectionID
-    self.verticalProjectionID = verticalProjectionID
-  }
-
-  var snapshot: UnitCircleSnapshot? {
-    do {
-      guard case .point(.onCircle(_, let angle)) = scene.entity(movingPointID) else {
-        return nil
-      }
-      return UnitCircleSnapshot(
-        center: try scene.circle(circleID).center,
-        movingPoint: try scene.point(movingPointID),
-        horizontalProjection: try scene.point(horizontalProjectionID),
-        verticalProjection: try scene.point(verticalProjectionID),
-        angleRadians: angle)
-    } catch {
-      return nil
-    }
-  }
-
-  mutating func setAngle(_ angleRadians: Double) throws {
-    try scene.replace(
-      movingPointID,
-      with: .point(.onCircle(circle: circleID, angleRadians: angleRadians)))
-  }
-
-  mutating func movePoint(to point: Point2D) throws {
-    try scene.movePoint(movingPointID, to: point)
+  var errorDescription: String? {
+    "The saved unit-circle document does not contain its required relationships."
   }
 }
 
-private struct UnitCircleSnapshot {
-  let center: Point2D
-  let movingPoint: Point2D
-  let horizontalProjection: Point2D
-  let verticalProjection: Point2D
-  let angleRadians: Double
+struct UnitCircleDocument: Codable, Equatable, Sendable {
+  var scene: GeometryScene
+  let construction: UnitCircleConstruction
 
-  var angleDegrees: Double {
-    angleRadians * 180 / .pi
+  init() throws {
+    var scene = GeometryScene(coordinateSystem: .cartesian)
+    let construction = try UnitCircleConstruction.insert(into: &scene)
+    self.scene = scene
+    self.construction = construction
   }
 
-  var cosine: Double {
-    cos(angleRadians)
+  var snapshot: UnitCircleSnapshot? {
+    try? construction.snapshot(in: scene)
   }
 
-  var sine: Double {
-    sin(angleRadians)
+  func validate() throws {
+    do {
+      _ = try construction.snapshot(in: scene)
+    } catch {
+      throw UnitCircleDocumentError.inconsistentDocument
+    }
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    scene = try container.decode(GeometryScene.self, forKey: .scene)
+    construction = try container.decode(UnitCircleConstruction.self, forKey: .construction)
+    try validate()
+  }
+
+  func encode(to encoder: Encoder) throws {
+    try validate()
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(scene, forKey: .scene)
+    try container.encode(construction, forKey: .construction)
+  }
+
+  private enum CodingKeys: CodingKey {
+    case scene
+    case construction
+  }
+}
+
+struct UnitCircleLabSession: Sendable {
+  private(set) var document: UnitCircleDocument
+  private var history: GeometryHistory
+
+  init() throws {
+    self.init(document: try UnitCircleDocument())
+  }
+
+  init(document: UnitCircleDocument) {
+    self.document = document
+    history = GeometryHistory(scene: document.scene)
+  }
+
+  init(encodedDocument: Data) throws {
+    self.init(document: try JSONDecoder().decode(UnitCircleDocument.self, from: encodedDocument))
+  }
+
+  var snapshot: UnitCircleSnapshot? { document.snapshot }
+  var canUndo: Bool { history.canUndo }
+  var canRedo: Bool { history.canRedo }
+
+  func encodedDocument() throws -> Data {
+    try JSONEncoder().encode(document)
+  }
+
+  mutating func setAngle(
+    _ angleRadians: Double,
+    coalescingID: String? = nil
+  ) throws {
+    try apply(
+      .setParameter(id: document.construction.angleParameterID, value: angleRadians),
+      coalescingID: coalescingID)
+  }
+
+  mutating func advanceAngle(by delta: Double, coalescingID: String) throws {
+    guard let angle = snapshot?.angleRadians else {
+      throw UnitCircleDocumentError.inconsistentDocument
+    }
+    try setAngle(angle + delta, coalescingID: coalescingID)
+  }
+
+  mutating func movePoint(to point: Point2D, coalescingID: String) throws {
+    try apply(
+      .movePoint(id: document.construction.movingPointID, target: point),
+      coalescingID: coalescingID)
+  }
+
+  @discardableResult
+  mutating func undo() -> Bool {
+    let changed = history.undo()
+    synchronizeDocument()
+    return changed
+  }
+
+  @discardableResult
+  mutating func redo() -> Bool {
+    let changed = history.redo()
+    synchronizeDocument()
+    return changed
+  }
+
+  private mutating func apply(
+    _ command: GeometryCommand,
+    coalescingID: String?
+  ) throws {
+    _ = try history.apply(
+      GeometryTransaction(commands: [command]),
+      coalescingID: coalescingID)
+    synchronizeDocument()
+  }
+
+  private mutating func synchronizeDocument() {
+    document.scene = history.scene
   }
 }

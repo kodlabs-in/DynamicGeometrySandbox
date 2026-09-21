@@ -12,6 +12,7 @@ struct FunctionLabView: View {
   @State private var sampleCount = 160.0
   @State private var integralLower = 0.0
   @State private var integralUpper = Double.pi
+  @State private var riemannRule: FunctionRiemannRule = .midpoint
   @State private var limitTarget = 0.0
   @State private var result: FunctionRunResult?
   @State private var errorMessage: String?
@@ -87,9 +88,9 @@ struct FunctionLabView: View {
       }
 
       HStack {
-        Text("Samples: \(Int(sampleCount))")
+        Text("\(mode == .integral ? "Rectangles" : "Samples"): \(Int(sampleCount))")
           .font(.caption)
-          .frame(width: 100, alignment: .leading)
+          .frame(width: 130, alignment: .leading)
         Slider(value: $sampleCount, in: 16...512, step: 16)
       }
 
@@ -101,6 +102,12 @@ struct FunctionLabView: View {
           NumberField(title: "Integral from", value: $integralLower)
           NumberField(title: "Integral to", value: $integralUpper)
         }
+        Picker("Rectangle sample", selection: $riemannRule) {
+          ForEach(FunctionRiemannRule.allCases) { rule in
+            Text(rule.title).tag(rule)
+          }
+        }
+        .pickerStyle(.segmented)
       case .limit:
         NumberField(title: "x approaches", value: $limitTarget)
           .frame(maxWidth: 220)
@@ -112,7 +119,7 @@ struct FunctionLabView: View {
     HStack {
       Button("Build Geometry", systemImage: "play.fill", action: run)
         .buttonStyle(.borderedProminent)
-      Text("The graph is rebuilt as DynamicGeometry points and segments.")
+      Text("The graph and calculus results are evaluated by DynamicGeometry.")
         .font(.caption)
         .foregroundStyle(.secondary)
     }
@@ -125,8 +132,8 @@ struct FunctionLabView: View {
         LabMetric(title: "Entities", value: result.scene.orderedIDs.count.formatted())
         LabMetric(title: "Build", value: String(format: "%.2f ms", result.buildMilliseconds))
         LabMetric(title: "Encoded", value: result.encodedSize)
-        if let integral = result.integral {
-          LabMetric(title: "Integral", value: FunctionRunResult.format(integral))
+        if let signedSum = result.riemannResult?.signedSum {
+          LabMetric(title: "Signed sum", value: FunctionRunResult.format(signedSum))
         }
         if let limit = result.limitEstimate {
           LabMetric(title: "Limit", value: limit)
@@ -137,7 +144,7 @@ struct FunctionLabView: View {
         scene: result.scene,
         viewport: safeViewport,
         showsPoints: false,
-        fillPoints: result.integralFill
+        riemannRectangles: result.riemannResult?.rectangles ?? []
       )
       .frame(height: 460)
 
@@ -192,7 +199,8 @@ struct FunctionLabView: View {
           sampleCount: Int(sampleCount),
           integralLower: integralLower,
           integralUpper: integralUpper,
-          limitTarget: limitTarget))
+          limitTarget: limitTarget,
+          riemannRule: riemannRule.packageRule))
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -201,6 +209,23 @@ struct FunctionLabView: View {
   private func safeRange(_ first: Double, _ second: Double) -> ClosedRange<Double> {
     if first == second { return (first - 1)...(second + 1) }
     return min(first, second)...max(first, second)
+  }
+}
+
+private enum FunctionRiemannRule: String, CaseIterable, Identifiable {
+  case left
+  case right
+  case midpoint
+
+  var id: Self { self }
+  var title: String { rawValue.capitalized }
+
+  var packageRule: RiemannSamplingRule {
+    switch self {
+    case .left: .left
+    case .right: .right
+    case .midpoint: .midpoint
+    }
   }
 }
 

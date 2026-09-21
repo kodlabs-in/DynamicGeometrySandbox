@@ -30,7 +30,16 @@ struct ConstructionLabView: View {
           }
           .disabled(history.isEmpty)
 
-          Button("Clear", systemImage: "trash", role: .destructive) {
+          Menu("Delete", systemImage: "trash") {
+            ForEach(scene.orderedIDs, id: \.self) { id in
+              Button(entityTitle(id)) {
+                deleteEntity(id)
+              }
+            }
+          }
+          .disabled(scene.orderedIDs.isEmpty)
+
+          Button("Clear", systemImage: "trash.slash", role: .destructive) {
             clear()
           }
           .disabled(scene.orderedIDs.isEmpty)
@@ -130,18 +139,6 @@ struct ConstructionLabView: View {
       .coordinateSpace(name: "construction-canvas")
     }
     .frame(minHeight: 420)
-  }
-
-  private var movablePointIDs: [GeometryID] {
-    scene.orderedIDs.filter { id in
-      guard case .point(let definition) = scene.entity(id) else { return false }
-      switch definition {
-      case .free, .onCircle:
-        return true
-      case .horizontalProjection, .verticalProjection:
-        return false
-      }
-    }
   }
 
   private var encodedSize: String {
@@ -271,6 +268,45 @@ struct ConstructionLabView: View {
     scene = previous
     draftPoints = []
     polylinePointIDs = []
+  }
+}
+
+private extension ConstructionLabView {
+  var movablePointIDs: [GeometryID] {
+    scene.orderedIDs.filter { id in
+      guard case .point(let definition) = scene.entity(id) else { return false }
+      switch definition {
+      case .free, .onCircle, .onCircleExpression:
+        return true
+      case .computed,
+        .horizontalProjection,
+        .horizontalProjectionExpression,
+        .verticalProjection,
+        .verticalProjectionExpression:
+        return false
+      }
+    }
+  }
+
+  func deleteEntity(_ id: GeometryID) {
+    mutateScene { scene in
+      try scene.deleteEntities([id], policy: .cascadeDependents)
+    }
+  }
+
+  func entityTitle(_ id: GeometryID) -> String {
+    let position = (scene.orderedIDs.firstIndex(of: id) ?? 0) + 1
+    let kind: String
+    switch scene.entity(id) {
+    case .point: kind = "Point"
+    case .circle: kind = "Circle"
+    case .ellipse: kind = "Ellipse"
+    case .segment: kind = "Segment"
+    case .line: kind = "Line"
+    case .ray: kind = "Ray"
+    case nil: kind = "Missing"
+    }
+    return "\(position). \(kind)"
   }
 }
 

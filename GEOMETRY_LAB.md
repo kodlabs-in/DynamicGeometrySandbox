@@ -1,7 +1,8 @@
 # Geometry Lab Guide
 
-The sandbox is an in-memory prototype for discovering what `DynamicGeometry` can express and where
-its current model stops being sufficient. It does not save experiments.
+The sandbox is a prototype for discovering what `DynamicGeometry` can express and where its current
+model stops being sufficient. Most lab state is temporary; the Unit Circle lab can encode and
+reopen its package scene and construction identifiers in memory to verify persistence behavior.
 
 ## Construction Lab
 
@@ -13,8 +14,9 @@ Choose a tool and tap the canvas:
 - **Ellipse:** tap its centre, a horizontal-radius point, and a vertical-radius point.
 - **Polyline:** keep tapping vertices, then choose **Finish** or **Close Shape**.
 
-Use **Undo** to remove the most recent construction change. Use **Clear** to reset the whole scene;
-Clear itself can be undone.
+Use **Delete** to choose one entity and cascade through geometry that depends on it. Use **Undo** or
+**Redo** to navigate construction edits. Use **Clear** to reset the whole scene; Clear itself can be
+undone.
 
 Orange handles are package point entities. Drag them to call `GeometryScene.movePoint`, then observe
 the dependent geometry resolve again. A closed polyline is the generic way to approximate any
@@ -27,7 +29,7 @@ Enter an expression using:
 ```text
 x  pi  e
 +  -  *  /  ^  (  )
-sin cos tan asin acos atan abs sqrt log ln exp floor ceil
+sin cos tan abs sqrt log ln exp
 ```
 
 Multiplication must be explicit: use `2*x`, not `2x`.
@@ -44,16 +46,29 @@ x^3 - 3*x
 
 Choose an experiment:
 
-- **Graph** samples the expression across the x-domain.
-- **Integral** uses the trapezoid rule and shades the sampled area.
+- **Graph** asks the package to sample a semantic explicit curve into separate finite branches.
+- **Integral** asks the package for signed left, right, or midpoint Riemann rectangles and their sum.
 - **Limit** evaluates points approaching the target from the left and right.
 
-Every finite graph sample is inserted into a real `GeometryScene` as a free point. Adjacent samples
-are connected using segment entities. The reported entity count, construction time, and JSON size
-therefore measure the package rather than only SwiftUI drawing.
+The package intentionally separates branches around undefined or detected discontinuities, so the
+renderer never draws a segment across a gap such as `1/x` at zero. Curve and Riemann definitions
+are Codable semantic data; sampled points and rectangles are derived on demand and are not stored
+in a scene document.
 
 The integral and limit results are numerical experiments. `DynamicGeometry` does not currently do
-symbolic algebra, exact integration, or formal limit proofs.
+symbolic algebra, exact integration, or formal limit proofs. The sandbox parser recognizes a few
+additional names, but unsupported package functions are reported clearly instead of being silently
+approximated as supported engine behavior.
+
+## Unit Circle Lab
+
+The Unit Circle lab is built by `UnitCircleConstruction`, not a Sandbox-only geometry recipe. Drag
+the orange point, choose a preset angle, or press **Play** to change the shared angle parameter.
+Continuous drag and animation updates are coalesced into sensible history steps.
+
+Use **Save** and **Reopen** to encode and decode the package scene together with the construction's
+stable identifiers. The reopened point remains draggable and the cosine, sine, projections, angle,
+and radius continue to resolve from the same semantic parameters.
 
 ## Stress Lab
 
@@ -62,11 +77,14 @@ Select a pattern and requested size:
 - **Graph:** points plus connecting segments.
 - **Overlap:** distinct circles with identical geometry.
 - **Chain:** deeply nested derived projections. This is capped at 400 to keep the prototype usable.
+- **Incremental:** one free root with 100, 1,000, or 10,000 dependents, moved twelve times. It
+  reports p95 update time and the exact affected-entity count without rendering every dependent.
 - **Invalid:** repeated NaN and infinity insertions; the final scene must remain empty and valid.
 
 Each run measures scene construction, complete resolution, JSON encoding, JSON decoding, and final
-validation. Increase the requested count until the interaction cost is no longer acceptable, then
-record the device, pattern, count, and timings before optimizing the package.
+validation. Incremental runs additionally measure the package's targeted invalidation path. Record
+the device, pattern, count, and timings before optimizing; the 16.7 ms marker is informational, not
+a portable pass/fail threshold.
 
 ## Add another formula preset
 

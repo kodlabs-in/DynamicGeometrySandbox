@@ -21,6 +21,7 @@ indirect enum MathExpression: Sendable {
       operation.evaluate(left.evaluate(x: x), right.evaluate(x: x))
     }
   }
+
 }
 
 enum MathFunction: String, Sendable {
@@ -69,6 +70,7 @@ enum MathFunction: String, Sendable {
       value
     }
   }
+
 }
 
 enum MathBinaryOperator: Sendable {
@@ -87,15 +89,17 @@ enum MathBinaryOperator: Sendable {
     case .power: Foundation.pow(left, right)
     }
   }
+
 }
 
-enum MathExpressionError: Error, LocalizedError {
+enum MathExpressionError: Error, Equatable, LocalizedError {
   case empty
   case invalidCharacter(Character, Int)
   case invalidNumber(String)
   case unexpectedToken(String)
   case missingClosingParenthesis
   case unknownIdentifier(String)
+  case unsupportedPackageFunction(String)
   case trailingInput
 
   var errorDescription: String? {
@@ -112,6 +116,8 @@ enum MathExpressionError: Error, LocalizedError {
       "A closing parenthesis is missing."
     case .unknownIdentifier(let identifier):
       "Unknown name ‘\(identifier)’."
+    case .unsupportedPackageFunction(let function):
+      "DynamicGeometry does not support the function ‘\(function)’ yet."
     case .trailingInput:
       "The formula has extra input at the end."
     }
