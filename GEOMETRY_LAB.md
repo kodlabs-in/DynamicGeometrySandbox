@@ -55,10 +55,31 @@ renderer never draws a segment across a gap such as `1/x` at zero. Curve and Rie
 are Codable semantic data; sampled points and rectangles are derived on demand and are not stored
 in a scene document.
 
-The integral and limit results are numerical experiments. `DynamicGeometry` does not currently do
-symbolic algebra, exact integration, or formal limit proofs. The sandbox parser recognizes a few
-additional names, but unsupported package functions are reported clearly instead of being silently
-approximated as supported engine behavior.
+The integral and limit results are numerical experiments. Symbolic differentiation is available
+for supported `ScalarExpression` forms, but exact integration and formal limit proofs are not. The
+sandbox parser recognizes a few additional names; unsupported package functions are reported
+clearly instead of being silently approximated as supported engine behavior.
+
+## Advanced Math Lab
+
+Choose one package-backed acceptance preset:
+
+- **Polar:** samples `r = cos(kθ)` into safe curve branches.
+- **Implicit:** extracts a circle contour from a bounded grid and reports unresolved cells.
+- **3D Surface:** samples a saddle into an indexed mesh and applies a fixed 2D projection for this
+  UI. The package itself remains renderer-independent.
+- **Symbolic:** differentiates `sin(x²)` structurally, then samples the original and exact
+  derivative expressions.
+- **Constraints:** solves a circle and line equality together. Positive and negative seeds select
+  different local intersections.
+
+Resolution controls sampling density. The second slider changes a scenario-specific mathematical
+parameter. Diagnostics remain visible because zero diagnostics are not a valid assumption for an
+approximate implicit contour.
+
+These boundaries are intentional: implicit extraction is bounded and approximate, surface meshes
+use fixed rectangular sampling, symbolic algebra covers documented forms rather than acting as a
+general CAS, and the simultaneous solver is local and numerical rather than globally complete.
 
 ## Unit Circle Lab
 
@@ -96,6 +117,13 @@ return its expression string from `formula`. The free-form formula field require
 Add a `StressPattern` case in `DynamicGeometrySandbox/StressLab.swift`, implement its scene builder,
 and add an appropriate viewport. Keep the scenario expressed through public `DynamicGeometry` APIs
 so it continues to measure the package boundary.
+
+## Add another advanced scenario
+
+Add a case to `AdvancedMathScenario`, implement a runner using public `DynamicGeometry` APIs, and
+give it a parameter range and boundary statement in `AdvancedMathLabView.swift`. Add an acceptance
+test to `AdvancedMathLabTests.swift` before the implementation. Keep projection and drawing in the
+Sandbox; keep semantic curves, surfaces, expressions, and solver behavior in the package.
 
 ## Interpreting a missing capability
 

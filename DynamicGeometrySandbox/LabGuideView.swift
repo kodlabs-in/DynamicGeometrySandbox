@@ -57,6 +57,27 @@ struct LabGuideView: View {
         }
         .font(.system(.body, design: .monospaced))
 
+        Section("Advanced mathematics") {
+          GuideRow(
+            title: "Polar and implicit curves",
+            detail:
+              "Vary sampling density and a curve parameter. Implicit results expose unresolved "
+              + "grid cells instead of hiding approximation limits.")
+          GuideRow(
+            title: "3D surfaces",
+            detail:
+              "Sample a semantic package surface into an indexed mesh, then inspect the "
+              + "Sandbox's fixed two-dimensional projection.")
+          GuideRow(
+            title: "Symbolic algebra",
+            detail:
+              "Compare a supported expression with its structure-preserving exact derivative.")
+          GuideRow(
+            title: "Simultaneous constraints",
+            detail:
+              "Change the initial seed to select a local circle-line intersection branch.")
+        }
+
         Section("Find package limits") {
           GuideRow(
             title: "Graph",
@@ -85,9 +106,10 @@ struct LabGuideView: View {
 
         Section("Important boundary") {
           Text(
-            "DynamicGeometry provides numerical explicit curves and semantic Riemann sums. "
-              + "It does not claim symbolic algebra, exact integration, formal proofs, or a "
-              + "general constraint solver.")
+            "DynamicGeometry now provides bounded implicit contours, fixed-grid surface meshes, "
+              + "documented symbolic transformations, and a local numerical equality solver. "
+              + "It does not claim adaptive or globally complete geometry, a general computer "
+              + "algebra system, exact integration, formal proofs, or a globally complete solver.")
         }
       }
       .navigationTitle("Using the Lab")

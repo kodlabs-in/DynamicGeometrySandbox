@@ -208,6 +208,11 @@ struct GeometryPreviewGalleryView: View {
       .frame(width: 1_080, height: 760)
   }
 
+  #Preview("Advanced • Roadmap Engines") {
+    AdvancedMathLabView()
+      .frame(width: 1_080, height: 760)
+  }
+
   #Preview("Stress • Package Limits") {
     StressLabView()
       .frame(width: 1_080, height: 760)

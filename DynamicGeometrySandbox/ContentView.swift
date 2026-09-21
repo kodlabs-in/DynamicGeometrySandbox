@@ -33,6 +33,8 @@ struct ContentView: View {
       FunctionLabView()
     case .unitCircle:
       UnitCircleLabView()
+    case .advanced:
+      AdvancedMathLabView()
     case .stress:
       StressLabView()
     case .guide:
@@ -45,6 +47,7 @@ private enum GeometryLab: String, CaseIterable, Identifiable {
   case construction
   case functions
   case unitCircle
+  case advanced
   case stress
   case guide
 
@@ -55,6 +58,7 @@ private enum GeometryLab: String, CaseIterable, Identifiable {
     case .construction: "Construction"
     case .functions: "Functions"
     case .unitCircle: "Unit Circle"
+    case .advanced: "Advanced"
     case .stress: "Stress"
     case .guide: "Guide"
     }
@@ -65,6 +69,7 @@ private enum GeometryLab: String, CaseIterable, Identifiable {
     case .construction: "point.3.connected.trianglepath.dotted"
     case .functions: "function"
     case .unitCircle: "circle.dotted"
+    case .advanced: "cube.transparent"
     case .stress: "gauge.with.dots.needle.67percent"
     case .guide: "book.pages"
     }
