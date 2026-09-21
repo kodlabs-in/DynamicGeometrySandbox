@@ -1,6 +1,6 @@
 .PHONY: check format lint
 
-SWIFT_SOURCES := DynamicGeometrySandbox
+SWIFT_SOURCES := DynamicGeometrySandbox DynamicGeometrySandboxTests
 
 check: lint
 

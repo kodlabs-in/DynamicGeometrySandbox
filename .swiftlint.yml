@@ -1,5 +1,6 @@
 included:
   - DynamicGeometrySandbox
+  - DynamicGeometrySandboxTests
 
 strict: true
 

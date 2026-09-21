@@ -10,14 +10,30 @@
 		C0DEC0013057000000000001 /* DynamicGeometry in Frameworks */ = {isa = PBXBuildFile; productRef = C0DEC0013057000000000003 /* DynamicGeometry */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		D1A000063100000000000006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A34CDF713056F9530012FA41 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A34CDF783056F9530012FA41;
+			remoteInfo = DynamicGeometrySandbox;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		A34CDF793056F9530012FA41 /* DynamicGeometrySandbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DynamicGeometrySandbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1A000013100000000000001 /* DynamicGeometrySandboxTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DynamicGeometrySandboxTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A34CDF7B3056F9530012FA41 /* DynamicGeometrySandbox */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = DynamicGeometrySandbox;
+			sourceTree = "<group>";
+		};
+		D1A000023100000000000002 /* DynamicGeometrySandboxTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DynamicGeometrySandboxTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -31,6 +47,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D1A000043100000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -38,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				A34CDF7B3056F9530012FA41 /* DynamicGeometrySandbox */,
+				D1A000023100000000000002 /* DynamicGeometrySandboxTests */,
 				A34CDF7A3056F9530012FA41 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				A34CDF793056F9530012FA41 /* DynamicGeometrySandbox.app */,
+				D1A000013100000000000001 /* DynamicGeometrySandboxTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +101,29 @@
 			productReference = A34CDF793056F9530012FA41 /* DynamicGeometrySandbox.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D1A000083100000000000008 /* DynamicGeometrySandboxTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D1A0000B310000000000000B /* Build configuration list for PBXNativeTarget "DynamicGeometrySandboxTests" */;
+			buildPhases = (
+				D1A000033100000000000003 /* Sources */,
+				D1A000043100000000000004 /* Frameworks */,
+				D1A000053100000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D1A000073100000000000007 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D1A000023100000000000002 /* DynamicGeometrySandboxTests */,
+			);
+			name = DynamicGeometrySandboxTests;
+			packageProductDependencies = (
+			);
+			productName = DynamicGeometrySandboxTests;
+			productReference = D1A000013100000000000001 /* DynamicGeometrySandboxTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +136,10 @@
 				TargetAttributes = {
 					A34CDF783056F9530012FA41 = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					D1A000083100000000000008 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A34CDF783056F9530012FA41;
 					};
 				};
 			};
@@ -109,12 +161,20 @@
 			projectRoot = "";
 			targets = (
 				A34CDF783056F9530012FA41 /* DynamicGeometrySandbox */,
+				D1A000083100000000000008 /* DynamicGeometrySandboxTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A34CDF773056F9530012FA41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1A000053100000000000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -131,7 +191,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D1A000033100000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D1A000073100000000000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A34CDF783056F9530012FA41 /* DynamicGeometrySandbox */;
+			targetProxy = D1A000063100000000000006 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A34CDF823056F9540012FA41 /* Debug */ = {
@@ -319,6 +394,52 @@
 			};
 			name = Release;
 		};
+		D1A000093100000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R3645Z5958;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = in.kodlabs.DynamicGeometrySandboxTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DynamicGeometrySandbox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DynamicGeometrySandbox";
+				TEST_TARGET_NAME = DynamicGeometrySandbox;
+			};
+			name = Debug;
+		};
+		D1A0000A310000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R3645Z5958;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = in.kodlabs.DynamicGeometrySandboxTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DynamicGeometrySandbox.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DynamicGeometrySandbox";
+				TEST_TARGET_NAME = DynamicGeometrySandbox;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -336,6 +457,15 @@
 			buildConfigurations = (
 				A34CDF853056F9540012FA41 /* Debug */,
 				A34CDF863056F9540012FA41 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D1A0000B310000000000000B /* Build configuration list for PBXNativeTarget "DynamicGeometrySandboxTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1A000093100000000000009 /* Debug */,
+				D1A0000A310000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
