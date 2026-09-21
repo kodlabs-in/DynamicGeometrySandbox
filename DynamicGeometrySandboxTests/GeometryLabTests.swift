@@ -126,6 +126,36 @@ struct StressExperimentTests {
   }
 }
 
+@Suite("Preview scenarios")
+struct PreviewScenarioTests {
+  @Test("A circle with crossing axes is valid and round-trips through package storage")
+  func circleWithAxesRoundTrips() throws {
+    let snapshot = try GeometryPreviewScenario.circleWithAxes.makeSnapshot()
+
+    try snapshot.scene.validate()
+    let data = try JSONEncoder().encode(snapshot.scene)
+    let restored = try JSONDecoder().decode(GeometryScene.self, from: data)
+
+    #expect(restored == snapshot.scene)
+    #expect(snapshot.scene.orderedIDs.count == 8)
+  }
+
+  @Test("Every manual package scenario is valid and persistable")
+  func allScenariosRoundTrip() throws {
+    #expect(GeometryPreviewScenario.allCases.count == 5)
+
+    for scenario in GeometryPreviewScenario.allCases {
+      let snapshot = try scenario.makeSnapshot()
+      try snapshot.scene.validate()
+      #expect(!snapshot.scene.orderedIDs.isEmpty)
+
+      let data = try JSONEncoder().encode(snapshot.scene)
+      let restored = try JSONDecoder().decode(GeometryScene.self, from: data)
+      #expect(restored == snapshot.scene)
+    }
+  }
+}
+
 private func isClose(_ left: Double, _ right: Double, tolerance: Double = 0.000_001) -> Bool {
   abs(left - right) <= tolerance
 }

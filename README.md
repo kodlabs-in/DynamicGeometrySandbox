@@ -23,6 +23,22 @@ See [GEOMETRY_LAB.md](GEOMETRY_LAB.md) for formula syntax, workflows, and extens
 
 The sandbox uses a relative local package reference so package changes can be tested immediately.
 
+## Xcode previews
+
+Open `DynamicGeometrySandbox/PreviewGallery.swift` and resume the Canvas. It provides previews for:
+
+- A package-scenario gallery covering circle-with-axes, dependency, overlap, affine-transform,
+  and sampled-integral constructions
+- The complete Sandbox navigation
+- Construction tools
+- The draggable unit circle
+- Function graph, integral, and limit experiments
+- Package stress experiments
+
+The scenario gallery creates real `DynamicGeometry` scenes. Its scenarios are also validated,
+encoded, and decoded by the unit-test target, so the preview fixtures cannot silently drift away
+from the package API.
+
 ## Development checks
 
 ```bash
