@@ -1,7 +1,7 @@
 # DynamicGeometrySandbox
 
-A small SwiftUI app for validating the adjacent `DynamicGeometry` Swift package on iPhone and
-iPad.
+A small SwiftUI app for validating the
+[DynamicGeometry](https://github.com/kodlabs-in/DynamicGeometry) Swift package on iPhone and iPad.
 
 The app builds a unit-circle construction entirely from package entities. Drag the orange point
 around the circle or choose a preset angle. The radius, horizontal projection, vertical projection,
